@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Base Slate Blue / Dark Slate Background -->
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M0,0h108v108h-108z" />
+
+    <!-- Subtle Premium Dark Container Inset -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M18,34C18,25.16 25.16,18 34,18H74C82.84,18 90,25.16 90,34V74C90,82.84 82.84,90 74,90H34C25.16,90 18,82.84 18,74V34Z" />
+        
+    <!-- Soft Glow Radial Center Accent -->
+    <path
+        android:fillColor="#172554"
+        android:pathData="M34,34H74V74H34Z" />
+</vector>

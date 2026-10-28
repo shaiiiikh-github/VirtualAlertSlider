@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Virtual Alert Slider</string>
+    <string name="tile_label">Alert Slider</string>
+    <string name="widget_description">Quick alert mode switcher for Ring, Vibrate, and Silent modes.</string>
+</resources>

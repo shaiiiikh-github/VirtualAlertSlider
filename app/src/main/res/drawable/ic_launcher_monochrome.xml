@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Vertical Slider Track -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M38,28 C35.79,28 34,29.79 34,32 V74 C34,76.21 35.79,78 38,78 C40.21,78 42,76.21 42,74 V32 C42,29.79 40.21,28 38,28 Z" />
+
+    <!-- Slider Knob Switch Thumb -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M32,43 C29.79,43 28,44.79 28,47 V53 C28,55.21 29.79,57 32,57 H44 C46.21,57 48,55.21 48,53 V47 C48,44.79 46.21,43 44,43 H32 Z" />
+
+    <!-- Bell Icon Dome & Base -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M66,35 C65.17,35 64.5,35.67 64.5,36.5 V37.18 C61.64,37.86 60,40.42 60,43.5 V48.5 L58,50.5 V51.5 H74 V50.5 L72,48.5 V43.5 C72,40.42 70.36,37.86 67.5,37.18 V36.5 C67.5,35.67 66.83,35 66,35 Z M66,54.5 C67.38,54.5 68.5,53.38 68.5,52 H63.5 C63.5,53.38 64.62,54.5 66,54.5 Z" />
+
+    <!-- Sound Wave Arc -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M76.5,41.5 C78.8,43.8 78.8,47.2 76.5,49.5 L78,51 C81.1,47.9 81.1,43.1 78,40 L76.5,41.5 Z" />
+
+</vector>

@@ -1,0 +1,44 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.aab
+
+# Java class files
+*.class
+
+# Generated and build directories
+build/
+app/build/
+bin/
+gen/
+out/
+
+# Gradle cache and Kotlin compiler files
+.gradle/
+.kotlin/
+
+# Local configuration (machine-specific paths like Android SDK)
+local.properties
+
+# Keystore & Signing files (NEVER share keystores / passwords publicly)
+*.jks
+*.keystore
+signing.properties
+
+# Android Studio / IntelliJ IDEA configs
+*.iml
+.idea/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+
+# Log and temp files
+*.log
+captures/
+.navigation/
+
+# OS specific files
+.DS_Store
+Thumbs.db
