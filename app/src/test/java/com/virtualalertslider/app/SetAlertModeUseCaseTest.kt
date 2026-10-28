@@ -31,6 +31,7 @@ class FakeAlertSliderRepository : AlertSliderRepository {
     override suspend fun saveDefaultMode(mode: AlertMode) {}
     override suspend fun saveHapticFeedbackEnabled(enabled: Boolean) {}
     override suspend fun saveThemePreference(themePreference: ThemePreference) {}
+    override suspend fun saveBypassStuckSlider(enabled: Boolean) {}
     override fun isNotificationPolicyAccessGranted(): Boolean = !shouldFail
 }
 

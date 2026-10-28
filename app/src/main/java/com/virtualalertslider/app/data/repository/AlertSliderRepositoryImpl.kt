@@ -21,7 +21,17 @@ class AlertSliderRepositoryImpl(
 ) : AlertSliderRepository {
 
     override fun observeAlertMode(): Flow<AlertMode> {
-        return ringerModeReceiver.observeRingerModeChanges()
+        return combine(
+            ringerModeReceiver.observeRingerModeChanges(),
+            preferencesManager.rawSelectedModeFlow,
+            preferencesManager.settingsFlow
+        ) { systemMode, userSelectedMode, settings ->
+            if (settings.bypassStuckSlider && userSelectedMode != null) {
+                userSelectedMode
+            } else {
+                systemMode
+            }
+        }
     }
 
     override fun getCurrentAlertMode(): AlertMode {
@@ -54,6 +64,10 @@ class AlertSliderRepositoryImpl(
 
     override suspend fun saveThemePreference(themePreference: ThemePreference) {
         preferencesManager.saveThemePreference(themePreference)
+    }
+
+    override suspend fun saveBypassStuckSlider(enabled: Boolean) {
+        preferencesManager.saveBypassStuckSlider(enabled)
     }
 
     override fun isNotificationPolicyAccessGranted(): Boolean {

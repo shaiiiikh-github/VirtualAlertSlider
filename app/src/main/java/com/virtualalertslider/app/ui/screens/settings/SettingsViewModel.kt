@@ -57,5 +57,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun setBypassStuckSlider(enabled: Boolean) {
+        viewModelScope.launch {
+            saveSettingsUseCase.saveBypassStuckSlider(enabled)
+        }
+    }
+
     fun getNotificationPolicyIntent() = notificationPolicyManager.createNotificationPolicyAccessIntent()
 }

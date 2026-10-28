@@ -16,4 +16,8 @@ class SaveSettingsUseCase(private val repository: AlertSliderRepository) {
     suspend fun saveThemePreference(themePreference: ThemePreference) {
         repository.saveThemePreference(themePreference)
     }
+
+    suspend fun saveBypassStuckSlider(enabled: Boolean) {
+        repository.saveBypassStuckSlider(enabled)
+    }
 }

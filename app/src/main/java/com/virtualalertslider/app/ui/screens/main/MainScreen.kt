@@ -164,25 +164,32 @@ fun MainScreen(
             }
         }
 
-        // Error Dialog when permission is required
+        // Alert / Error Dialog
         if (uiState.errorMessage != null) {
+            val isPermissionError = uiState.errorMessage?.contains("permission", ignoreCase = true) == true ||
+                    uiState.errorMessage?.contains("Do Not Disturb", ignoreCase = true) == true
             AlertDialog(
                 onDismissRequest = { viewModel.clearErrorMessage() },
-                title = { Text("Permission Required") },
-                text = { Text(uiState.errorMessage ?: "Unknown error") },
+                title = { Text(if (isPermissionError) "Permission Required" else "Hardware Switch Notice") },
+                text = { Text(uiState.errorMessage ?: "Unknown notice") },
                 confirmButton = {
                     TextButton(
                         onClick = {
+                            val wasPermission = isPermissionError
                             viewModel.clearErrorMessage()
-                            context.startActivity(viewModel.getNotificationPolicyIntent())
+                            if (wasPermission) {
+                                context.startActivity(viewModel.getNotificationPolicyIntent())
+                            }
                         }
                     ) {
-                        Text("Open Settings")
+                        Text(if (isPermissionError) "Open Settings" else "Got It")
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { viewModel.clearErrorMessage() }) {
-                        Text("Cancel")
+                    if (isPermissionError) {
+                        TextButton(onClick = { viewModel.clearErrorMessage() }) {
+                            Text("Cancel")
+                        }
                     }
                 }
             )

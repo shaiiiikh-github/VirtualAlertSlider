@@ -13,5 +13,6 @@ interface AlertSliderRepository {
     suspend fun saveDefaultMode(mode: AlertMode)
     suspend fun saveHapticFeedbackEnabled(enabled: Boolean)
     suspend fun saveThemePreference(themePreference: ThemePreference)
+    suspend fun saveBypassStuckSlider(enabled: Boolean)
     fun isNotificationPolicyAccessGranted(): Boolean
 }

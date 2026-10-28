@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -128,13 +129,41 @@ fun VerticalAlertSlider(
                         trackHeightPx = coordinates.size.height.toFloat()
                     }
                     .pointerInput(trackHeightPx) {
+                        detectTapGestures { offset ->
+                            if (trackHeightPx > 0f) {
+                                val fraction = (offset.y / trackHeightPx).coerceIn(0f, 1f)
+                                val newMode = when {
+                                    fraction < 0.33f -> AlertMode.RING
+                                    fraction < 0.66f -> AlertMode.VIBRATE
+                                    else -> AlertMode.SILENT
+                                }
+                                if (newMode != currentMode) {
+                                    triggerHaptics()
+                                    onModeSelected(newMode)
+                                }
+                            }
+                        }
+                    }
+                    .pointerInput(trackHeightPx) {
                         detectDragGestures(
-                            onDrag = { change, dragAmount ->
+                            onDragStart = { offset ->
+                                if (trackHeightPx > 0f) {
+                                    val fraction = (offset.y / trackHeightPx).coerceIn(0f, 1f)
+                                    val newMode = when {
+                                        fraction < 0.33f -> AlertMode.RING
+                                        fraction < 0.66f -> AlertMode.VIBRATE
+                                        else -> AlertMode.SILENT
+                                    }
+                                    if (newMode != currentMode) {
+                                        triggerHaptics()
+                                        onModeSelected(newMode)
+                                    }
+                                }
+                            },
+                            onDrag = { change, _ ->
                                 change.consume()
                                 if (trackHeightPx > 0f) {
-                                    val currentY = animatedFraction * trackHeightPx + dragAmount.y
-                                    val clampedY = currentY.coerceIn(0f, trackHeightPx)
-                                    val fraction = clampedY / trackHeightPx
+                                    val fraction = (change.position.y / trackHeightPx).coerceIn(0f, 1f)
                                     val newMode = when {
                                         fraction < 0.33f -> AlertMode.RING
                                         fraction < 0.66f -> AlertMode.VIBRATE

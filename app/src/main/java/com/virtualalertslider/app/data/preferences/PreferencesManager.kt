@@ -25,6 +25,7 @@ class PreferencesManager(private val context: Context) {
         val DEFAULT_MODE = stringPreferencesKey("default_mode")
         val HAPTIC_FEEDBACK_ENABLED = booleanPreferencesKey("haptic_feedback_enabled")
         val THEME_PREFERENCE = stringPreferencesKey("theme_preference")
+        val BYPASS_STUCK_SLIDER = booleanPreferencesKey("bypass_stuck_slider")
     }
 
     val selectedModeFlow: Flow<AlertMode> = context.dataStore.data
@@ -40,6 +41,19 @@ class PreferencesManager(private val context: Context) {
             AlertMode.fromId(modeId)
         }
 
+    val rawSelectedModeFlow: Flow<AlertMode?> = context.dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map { preferences ->
+            val modeId = preferences[PreferencesKeys.LAST_SELECTED_MODE]
+            if (modeId != null) AlertMode.fromId(modeId) else null
+        }
+
     val settingsFlow: Flow<SliderSettings> = context.dataStore.data
         .catch { exception ->
             if (exception is IOException) {
@@ -52,7 +66,8 @@ class PreferencesManager(private val context: Context) {
             SliderSettings(
                 defaultMode = AlertMode.fromId(preferences[PreferencesKeys.DEFAULT_MODE]),
                 hapticFeedbackEnabled = preferences[PreferencesKeys.HAPTIC_FEEDBACK_ENABLED] ?: true,
-                themePreference = ThemePreference.fromName(preferences[PreferencesKeys.THEME_PREFERENCE])
+                themePreference = ThemePreference.fromName(preferences[PreferencesKeys.THEME_PREFERENCE]),
+                bypassStuckSlider = preferences[PreferencesKeys.BYPASS_STUCK_SLIDER] ?: true
             )
         }
 
@@ -77,6 +92,12 @@ class PreferencesManager(private val context: Context) {
     suspend fun saveThemePreference(themePreference: ThemePreference) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_PREFERENCE] = themePreference.name
+        }
+    }
+
+    suspend fun saveBypassStuckSlider(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BYPASS_STUCK_SLIDER] = enabled
         }
     }
 }
