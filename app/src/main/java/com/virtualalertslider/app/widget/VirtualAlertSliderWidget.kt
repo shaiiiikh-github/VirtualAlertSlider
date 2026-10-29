@@ -85,10 +85,10 @@ class VirtualAlertSliderWidget : AppWidgetProvider() {
             views.setImageViewResource(R.id.bg_widget_vibrate, if (currentMode == AlertMode.VIBRATE) activeBg else inactiveBg)
             views.setImageViewResource(R.id.bg_widget_silent, if (currentMode == AlertMode.SILENT) activeBg else inactiveBg)
 
-            // Set button text colors
-            views.setTextColor(R.id.txt_widget_ring, if (currentMode == AlertMode.RING) Color.WHITE else Color.parseColor("#94A3B8"))
-            views.setTextColor(R.id.txt_widget_vibrate, if (currentMode == AlertMode.VIBRATE) Color.WHITE else Color.parseColor("#94A3B8"))
-            views.setTextColor(R.id.txt_widget_silent, if (currentMode == AlertMode.SILENT) Color.WHITE else Color.parseColor("#94A3B8"))
+            // Set button text colors (iOS style active white, inactive muted gray)
+            views.setTextColor(R.id.txt_widget_ring, if (currentMode == AlertMode.RING) Color.WHITE else Color.parseColor("#8E8E93"))
+            views.setTextColor(R.id.txt_widget_vibrate, if (currentMode == AlertMode.VIBRATE) Color.WHITE else Color.parseColor("#8E8E93"))
+            views.setTextColor(R.id.txt_widget_silent, if (currentMode == AlertMode.SILENT) Color.WHITE else Color.parseColor("#8E8E93"))
 
             // Pending intents for button clicks
             views.setOnClickPendingIntent(R.id.btn_widget_ring, createModePendingIntent(context, AlertMode.RING, 101))

@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_widget"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="14dp">
 
     <!-- Header / Status row -->
     <LinearLayout
@@ -16,8 +16,8 @@
 
         <ImageView
             android:id="@+id/widget_mode_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:contentDescription="Mode Icon"
             android:src="@drawable/ic_ring" />
 
@@ -29,27 +29,24 @@
             android:layout_weight="1"
             android:text="RING"
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="SLIDER"
-            android:textColor="#94A3B8"
+            android:textColor="#8E8E93"
             android:textSize="10sp"
-            android:textStyle="bold" />
+            android:letterSpacing="0.08" />
     </LinearLayout>
 
-    <!-- Divider -->
-    <View
+    <!-- Spacing -->
+    <Space
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp"
-        android:background="#334155" />
+        android:layout_height="10dp" />
 
-    <!-- 3 Quick Mode Buttons -->
+    <!-- 3 Quick Mode Buttons in Segmented Style -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -82,8 +79,8 @@
 
                 <ImageView
                     android:id="@+id/img_widget_ring"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:src="@drawable/ic_ring" />
 
                 <TextView
@@ -93,7 +90,8 @@
                     android:layout_marginTop="2dp"
                     android:text="Ring"
                     android:textColor="#FFFFFF"
-                    android:textSize="11sp" />
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </FrameLayout>
 
@@ -102,7 +100,8 @@
             android:id="@+id/btn_widget_vibrate"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginEnd="4dp"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
             android:layout_weight="1"
             android:clickable="true"
             android:focusable="true">
@@ -122,8 +121,8 @@
 
                 <ImageView
                     android:id="@+id/img_widget_vibrate"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:src="@drawable/ic_vibrate" />
 
                 <TextView
@@ -132,7 +131,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="Vibrate"
-                    android:textColor="#94A3B8"
+                    android:textColor="#8E8E93"
                     android:textSize="11sp" />
             </LinearLayout>
         </FrameLayout>
@@ -142,6 +141,7 @@
             android:id="@+id/btn_widget_silent"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
             android:layout_weight="1"
             android:clickable="true"
             android:focusable="true">
@@ -161,8 +161,8 @@
 
                 <ImageView
                     android:id="@+id/img_widget_silent"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:src="@drawable/ic_silent" />
 
                 <TextView
@@ -171,10 +171,9 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:text="Silent"
-                    android:textColor="#94A3B8"
+                    android:textColor="#8E8E93"
                     android:textSize="11sp" />
             </LinearLayout>
         </FrameLayout>
     </LinearLayout>
-
 </LinearLayout>

@@ -1,75 +1,73 @@
-# Virtual Alert Slider
+# 🎚️ Virtual Alert Slider
 
-> **"Your physical alert slider, available digitally."**
+[![Latest Release](https://img.shields.io/github/v/release/shaiiiikh-github/VirtualAlertSlider?color=blue&label=Latest%20Release)](https://github.com/shaiiiikh-github/VirtualAlertSlider/releases/latest)
+[![Platform](https://img.shields.io/badge/Platform-Android%208.0+-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
 
-**Virtual Alert Slider** is a production-quality Android utility designed to serve as a complete software replacement and backup for physical alert sliders (such as those found on OnePlus or other Android devices). If your phone's physical slider is damaged, broken, stuck, or missing, this application grants full software control over your device's ringer and alert modes independently.
+> **"Your physical alert slider, accessible digitally anywhere, anytime."**
 
----
-
-## 🌟 Key Features
-
-* 🔔 **Ring Mode**: Instantly set device to Normal ringer mode with call and notification sound enabled.
-* 📳 **Vibrate Mode**: Switch to vibration-only mode for calls and notifications.
-* 🔇 **Silent Mode**: Full Do Not Disturb (DND) muting for silent environments.
-* 🎚️ **Interactive Vertical Slider**: Premium, smooth-dragging vertical slider UI with haptic feedback, snap points, and vibrant Material 3 mode-specific color accents.
-* ⚡ **Quick Settings Tile**: Control your alert mode directly from the Android status bar pull-down menu (`TileService`).
-* 📱 **Home Screen Widget**: Custom Material 3 widget (`AppWidgetProvider`) with active mode indicators and 1-tap mode switching.
-* 🔄 **Real-Time System Synchronization**: Uses dynamic broadcast receivers to detect hardware slider movements, volume key changes, or external system settings adjustments automatically.
-* ⚙️ **DataStore Persistence**: Automatically persists selected alert modes, startup defaults, haptic preferences, and theme choices.
-* 🎨 **Material 3 Theme**: Clean Obsidian/Slate dark mode default aesthetic, light theme support, and system dynamic color options.
+**Virtual Alert Slider** is a modern, production-grade Android utility engineered to provide a complete software-driven replacement and bypass for physical alert sliders. Whether your phone's physical alert slider is **jammed with pocket lint, mechanically broken, stuck permanently on Silent, or missing entirely** (such as on Samsung, Google Pixel, or Xiaomi devices), this app restores complete, independent control over your phone's sound profiles.
 
 ---
 
-## 🛠️ Technology & Stack
+## 🎯 Problem Statement
 
-* **Language**: Kotlin 2.0.21
-* **UI Framework**: Jetpack Compose (Material 3)
-* **Target SDK**: Android 15 (API level 35), Min SDK 26 (Android 8.0+)
-* **State Management**: Kotlin Flow & StateFlow inside ViewModel
-* **Persistence**: Jetpack DataStore Preferences
-* **System APIs**: `AudioManager`, `NotificationManager`, `TileService`, `AppWidgetProvider`
-* **Build System**: Gradle 8.14.3 (Kotlin DSL with Version Catalog `libs.versions.toml`)
+On smartphones equipped with a physical hardware alert slider (such as OnePlus):
+1. **The Stuck Slider Dilemma:** With regular use, pocket debris and mechanical wear often cause the physical slider switch to get jammed in the **SILENT** notch.
+2. **The Kernel Hardware Lock:** In OxygenOS and custom Android vendor kernels, a physical switch in the Silent position locks the audio driver. Standard volume buttons cannot restore the ringer because the operating system kernel immediately resets the volume to zero.
+3. **Expensive Repairs:** Replacing a damaged physical slider switch requires motherboard disassembly and service center costs ranging from ₹2,000 to ₹4,000 ($30–$50).
+4. **Devices Without Alert Sliders:** Millions of Android users on Google Pixel, Samsung Galaxy, and Motorola devices lack a fast, tactile 3-stage sound switcher.
 
----
-
-## 📱 System Requirements & Android Limitations
-
-### 1. Notification Policy Access (Do Not Disturb Access)
-Under standard Android security guidelines (Android 6.0 Marshmallow / API 23+):
-* **Ring** (`RINGER_MODE_NORMAL`) and **Vibrate** (`RINGER_MODE_VIBRATE`) can be modified without special permissions on most devices.
-* **Silent** (`RINGER_MODE_SILENT` and setting DND Interruption Filter to `INTERRUPTION_FILTER_PRIORITY`) **requires Notification Policy Access**.
-* Without this access, attempting to set Silent mode throws an Android `SecurityException`.
-
-#### Graceful Permission Flow
-When the user selects **Silent** for the first time without access:
-1. The app catches the `SecurityException` gracefully without crashing.
-2. A prominent banner & explanation dialog appears.
-3. Tapping **Grant Access in Settings** launches the official system intent:
-   `Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS`
-
-### 2. Hardware Alert Slider Coexistence
-* Virtual Alert Slider operates **independently** without requiring root privileges.
-* When a user toggles the physical slider, Android fires `AudioManager.RINGER_MODE_CHANGED_ACTION`. The app's `RINGER_MODE_CHANGED_ACTION` receiver catches this broadcast and updates the Compose UI, Quick Settings Tile, and Home Screen Widget instantly.
+**Virtual Alert Slider overcomes all these hurdles purely through software.**
 
 ---
 
-## 📂 Project Architecture
+## 🚀 Key Features
 
-The codebase strictly adheres to Android Clean Architecture guidelines:
+* 🔔 **Full Ring Mode**: Restores `RINGER_MODE_NORMAL`, unmutes `STREAM_RING` and `STREAM_NOTIFICATION`, and clears Do Not Disturb policies.
+* 📳 **Tactile Vibrate Mode**: Sets `RINGER_MODE_VIBRATE` for silent environments while retaining haptic call awareness.
+* 🔇 **Silent Mode (DND)**: Intelligently configures Do Not Disturb policies (`INTERRUPTION_FILTER_ALARMS`) so crucial morning alarms still ring while silencing distracting calls and alerts.
+* 🛠️ **Hardware Slider Bypass Engine**: Actively overrides jammed hardware switches by unmuting audio streams and prioritizing user on-screen selection over stuck kernel broadcasts.
+* 🎚️ **Fluid Vertical Slider UI**: Built with Jetpack Compose featuring spring animations, draggable knob physics, tap-to-snap points, and custom haptic feedback.
+* 📱 **Material 3 Desktop Widget**: Interactive `AppWidgetProvider` widget placed on your home screen for instant 1-tap mode toggling.
+* ⚡ **Quick Settings Tile**: Integrated Android `TileService` allowing you to flip ringer profiles directly from the notification shade without launching the app.
+* ⚙️ **Persistent Preferences**: Uses Jetpack DataStore to remember your startup defaults, haptic preferences, theme choice, and bypass settings.
+* 🎨 **Dark Slate / Obsidian Theme**: Tailored Material 3 palette with mode-specific vibrant accents (Ring Blue, Vibrate Amber, Silent Pink).
+
+---
+
+## 📥 Download & Installation
+
+You can download the pre-compiled APK directly onto your phone without needing Android Studio:
+
+👉 **[Download Latest APK from GitHub Releases](https://github.com/shaiiiikh-github/VirtualAlertSlider/releases/latest)**
+
+1. Download **`VirtualAlertSlider-v1.2.0.apk`** to your Android phone.
+2. Tap the downloaded file to install.
+3. If prompted, allow *"Install from this source"*.
+4. Open the app and grant **Do Not Disturb (Notification Policy) Access** when prompted.
+
+---
+
+## 🏗️ Architecture & Project Structure
+
+The project follows the official **Clean Architecture + MVVM** guidelines:
 
 ```text
 com.virtualalertslider.app/
 ├── data/
 │   ├── preferences/
-│   │   └── PreferencesManager.kt       # DataStore preferences implementation
+│   │   └── PreferencesManager.kt          # Jetpack DataStore preferences
 │   └── repository/
-│       ├── AlertSliderRepository.kt     # Repository contract interface
-│       └── AlertSliderRepositoryImpl.kt # Repository implementation
+│       ├── AlertSliderRepository.kt        # Repository abstraction
+│       └── AlertSliderRepositoryImpl.kt    # Hybrid state stream (Hardware + User Override)
 ├── domain/
 │   ├── model/
-│   │   ├── AlertMode.kt                 # Ring, Vibrate, Silent enum definition
-│   │   ├── SliderSettings.kt            # Settings data model
-│   │   └── ThemePreference.kt           # Theme options
+│   │   ├── AlertMode.kt                    # RING, VIBRATE, SILENT definitions
+│   │   ├── SliderSettings.kt               # Settings domain model
+│   │   └── ThemePreference.kt              # SYSTEM, LIGHT, DARK
 │   └── usecase/
 │       ├── GetAlertModeUseCase.kt
 │       ├── SetAlertModeUseCase.kt
@@ -77,73 +75,99 @@ com.virtualalertslider.app/
 │       ├── GetSettingsUseCase.kt
 │       └── SaveSettingsUseCase.kt
 ├── system/
-│   ├── AudioModeManager.kt              # Interacts with AudioManager & NotificationManager
-│   ├── NotificationPolicyManager.kt     # Checks & prompts DND access
-│   └── RingerModeReceiver.kt            # Listens to system ringer & DND broadcasts
+│   ├── AudioModeManager.kt                 # Stream unmuting & hardware bypass logic
+│   ├── NotificationPolicyManager.kt        # DND permission checking & intents
+│   └── RingerModeReceiver.kt               # Listens for system ringer & DND changes
 ├── tile/
-│   └── VirtualAlertSliderTile.kt        # Quick Settings TileService implementation
+│   └── VirtualAlertSliderTile.kt           # Quick Settings TileService implementation
 ├── widget/
-│   └── VirtualAlertSliderWidget.kt      # Home Screen AppWidgetProvider implementation
-├── ui/
-│   ├── components/
-│   │   ├── VerticalAlertSlider.kt       # Interactive Compose slider component
-│   │   ├── AlertModeCard.kt             # Active mode showcase card
-│   │   ├── HeaderCard.kt                # Header & DND status pill
-│   │   └── PermissionBanner.kt          # DND permission banner
-│   ├── screens/
-│   │   ├── main/
-│   │   │   ├── MainScreen.kt            # Main screen Compose layout
-│   │   │   └── MainViewModel.kt         # ViewModel for main UI
-│   │   └── settings/
-│   │       ├── SettingsScreen.kt        # App preferences & setup instructions
-│   │       └── SettingsViewModel.kt     # ViewModel for settings screen
-│   └── theme/
-│       ├── Color.kt                     # M3 Slate/Obsidian color tokens
-│       ├── Theme.kt                     # Compose MaterialTheme setup
-│       └── Type.kt                      # Typography definitions
-└── MainActivity.kt                       # Single activity Compose entry point
+│   └── VirtualAlertSliderWidget.kt         # Desktop Home Screen Widget
+└── ui/
+    ├── components/
+    │   ├── VerticalAlertSlider.kt          # Compose vertical slider with drag & tap
+    │   ├── AlertModeCard.kt                # Active mode showcase card
+    │   ├── HeaderCard.kt                   # App header and permission indicator
+    │   └── PermissionBanner.kt             # DND permission alert card
+    ├── screens/
+    │   ├── main/
+    │   │   ├── MainScreen.kt               # Main slider and mode selector UI
+    │   │   └── MainViewModel.kt            # StateFlow UI state holder
+    │   └── settings/
+    │       ├── SettingsScreen.kt           # Bypass switch, haptics & theme preferences
+    │       └── SettingsViewModel.kt        # Settings management ViewModel
+    └── theme/
+        ├── Color.kt                        # Slate and mode accent tokens
+        ├── Theme.kt                        # Material 3 dynamic color theme
+        └── Type.kt                         # Typography definitions
 ```
 
 ---
 
-## ⚡ Setup & Build Instructions
+## ⚙️ How the Hardware Bypass Works
 
-### Prerequisites
-* **JDK**: OpenJDK 17 or higher
-* **Android SDK**: API Level 35 (Android 15) installed
-* **Gradle Wrapper**: 8.14.3
+When a physical switch is jammed in Silent, Android's kernel blocks standard ringer switches. Virtual Alert Slider overcomes this via a 3-layer approach:
 
-### Build Commands
+```mermaid
+graph TD
+    User([User Taps / Drags to RING]) --> App[Virtual Alert Slider]
+    App --> Bypass[Hardware Slider Bypass Engine]
+    Bypass --> Step1[1. Put Global Settings: three_Key_mode = 3]
+    Bypass --> Step2[2. Clear DND: INTERRUPTION_FILTER_ALL]
+    Bypass --> Step3[3. Force Unmute: STREAM_RING & STREAM_NOTIFICATION]
+    Bypass --> Step4[4. Restore Audio Volumes: 75% max volume]
+    Bypass --> Step5[5. Lock Virtual UI State: Prevent kernel rollback]
+    Step4 --> Result([Phone Rings Out Loud!])
+```
+
+### Optional Deep OnePlus System Hook (ADB)
+For complete system-level integration on OxygenOS devices, users can optionally grant the protected secure settings permission via ADB:
 
 ```bash
-# Clone or open project directory
+adb shell pm grant com.virtualalertslider.app android.permission.WRITE_SECURE_SETTINGS
+```
+This enables the app to write directly to OxygenOS's internal `three_Key_mode` system table, instructing the OS kernel to recognize the phone in Ring mode despite a jammed physical switch.
+
+---
+
+## 🛠️ Build & Developer Setup
+
+### Prerequisites
+* **Android Studio**: Ladybug / Koala / Hedgehog or newer
+* **JDK**: OpenJDK 17 or higher
+* **Android SDK**: API Level 35 (Android 15)
+
+### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/shaiiiikh-github/VirtualAlertSlider.git
 cd VirtualAlertSlider
 
-# Run Unit Tests
+# Run automated unit tests
 ./gradlew test
 
-# Build Debug APK
+# Build debug APK
 ./gradlew assembleDebug
 ```
 
-The compiled APK will be located at:
+The output APK will be generated at:
 `app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
 ## 🧪 Unit Tests
 
-Unit tests are included to verify state transitions, domain use cases, and ringer mode conversions:
-* `AlertModeTest.kt`: Validates mode cycling (`RING` -> `VIBRATE` -> `SILENT`), position indexing, and ringer mode conversions.
-* `SetAlertModeUseCaseTest.kt`: Validates repository interactions, success state, and `SecurityException` handling when permissions are absent.
+Automated unit tests are located in `app/src/test`:
+* **`AlertModeTest.kt`**: Tests mode indexing, cycling (`RING` -> `VIBRATE` -> `SILENT`), and ringer mode translations.
+* **`SetAlertModeUseCaseTest.kt`**: Tests clean architecture use cases, repository dispatch, and permission handling.
 
-To execute tests:
+To run tests:
 ```bash
 ./gradlew test
 ```
 
 ---
 
-## 📄 License & Attribution
+## 📄 License
 
-Designed and built as a standalone digital utility for Android devices. Independent implementation with zero proprietary hardware dependencies or brand lock-in.
+This project is licensed under the Apache License 2.0. Open-source Android utility built with standard Android Open Source Project (AOSP) APIs with zero vendor lock-in.

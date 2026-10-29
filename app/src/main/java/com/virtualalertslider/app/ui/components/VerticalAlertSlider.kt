@@ -5,57 +5,57 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.virtualalertslider.app.domain.model.AlertMode
+import com.virtualalertslider.app.ui.theme.IosDarkBorder
+import com.virtualalertslider.app.ui.theme.IosLightBorder
 import com.virtualalertslider.app.ui.theme.RingBlue
-import com.virtualalertslider.app.ui.theme.SilentPink
+import com.virtualalertslider.app.ui.theme.SilentRed
 import com.virtualalertslider.app.ui.theme.VibrateAmber
 import kotlin.math.roundToInt
 
@@ -67,268 +67,214 @@ fun VerticalAlertSlider(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
-    val modes = listOf(AlertMode.RING, AlertMode.VIBRATE, AlertMode.SILENT)
+    val isDark = isSystemInDarkTheme()
+    val density = LocalDensity.current
 
-    // Animated position ratio: 0.0f (Top - RING), 0.5f (Middle - VIBRATE), 1.0f (Bottom - SILENT)
+    val currentModeState by rememberUpdatedState(currentMode)
+    val onModeSelectedState by rememberUpdatedState(onModeSelected)
+
+    // Animated target position fraction: 0.0f (RING), 0.5f (VIBRATE), 1.0f (SILENT)
     val targetFraction = when (currentMode) {
         AlertMode.RING -> 0.0f
         AlertMode.VIBRATE -> 0.5f
         AlertMode.SILENT -> 1.0f
     }
 
+    var isDragging by remember { mutableStateOf(false) }
+    var dragFraction by remember { mutableFloatStateOf(targetFraction) }
+
+    // Spring animation for smooth, refined Apple-like motion
     val animatedFraction by animateFloatAsState(
-        targetValue = targetFraction,
+        targetValue = if (isDragging) dragFraction else targetFraction,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
         ),
-        label = "SliderFraction"
+        label = "AlertSliderFraction"
     )
 
-    val activeColor by animateColorAsState(
+    // Subtle 250ms accent cross-fade
+    val accentColor by animateColorAsState(
         targetValue = when (currentMode) {
             AlertMode.RING -> RingBlue
             AlertMode.VIBRATE -> VibrateAmber
-            AlertMode.SILENT -> SilentPink
+            AlertMode.SILENT -> SilentRed
         },
-        animationSpec = spring(stiffness = Spring.StiffnessLow),
-        label = "SliderColor"
+        animationSpec = tween(durationMillis = 250),
+        label = "AlertSliderAccent"
     )
 
-    fun triggerHaptics() {
+    fun triggerHaptic() {
         if (hapticEnabled) {
             view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
         }
     }
 
-    Surface(
+    val knobSize = 58.dp
+    val trackPadding = 5.dp
+    val trackWidth = 72.dp
+
+    BoxWithConstraints(
         modifier = modifier
-            .width(280.dp)
-            .height(380.dp),
-        shape = RoundedCornerShape(32.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 6.dp,
-        shadowElevation = 12.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            .width(trackWidth)
+            .heightIn(min = 220.dp, max = 340.dp)
+            .semantics {
+                this.contentDescription = "Virtual Alert Slider"
+                this.stateDescription = currentMode.title
+                this.customActions = listOf(
+                    CustomAccessibilityAction("Switch to Ring") {
+                        if (currentModeState != AlertMode.RING) {
+                            triggerHaptic()
+                            onModeSelectedState(AlertMode.RING)
+                        }
+                        true
+                    },
+                    CustomAccessibilityAction("Switch to Vibrate") {
+                        if (currentModeState != AlertMode.VIBRATE) {
+                            triggerHaptic()
+                            onModeSelectedState(AlertMode.VIBRATE)
+                        }
+                        true
+                    },
+                    CustomAccessibilityAction("Switch to Silent") {
+                        if (currentModeState != AlertMode.SILENT) {
+                            triggerHaptic()
+                            onModeSelectedState(AlertMode.SILENT)
+                        }
+                        true
+                    }
+                )
+            },
+        contentAlignment = Alignment.TopCenter
     ) {
-        Row(
+        val totalHeightPx = with(density) { maxHeight.toPx() }
+        val knobSizePx = with(density) { knobSize.toPx() }
+        val paddingPx = with(density) { trackPadding.toPx() }
+
+        val travelPx = (totalHeightPx - 2 * paddingPx - knobSizePx).coerceAtLeast(1f)
+
+        fun fractionFromY(y: Float): Float {
+            val knobTopTarget = y - (knobSizePx / 2f) - paddingPx
+            return (knobTopTarget / travelPx).coerceIn(0f, 1f)
+        }
+
+        fun modeFromFraction(f: Float): AlertMode {
+            return when {
+                f < 0.28f -> AlertMode.RING
+                f > 0.72f -> AlertMode.SILENT
+                else -> AlertMode.VIBRATE
+            }
+        }
+
+        val trackBg = if (isDark) Color(0x33767680) else Color(0x1F767680)
+        val trackBorder = if (isDark) IosDarkBorder else IosLightBorder
+
+        // Glass Capsule Outer Track
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 28.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .clip(CircleShape)
+                .background(trackBg)
+                .border(BorderStroke(0.5.dp, trackBorder), CircleShape)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val tappedFraction = fractionFromY(offset.y)
+                        val newMode = modeFromFraction(tappedFraction)
+                        if (newMode != currentModeState) {
+                            triggerHaptic()
+                            onModeSelectedState(newMode)
+                        }
+                    }
+                }
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragStart = { offset ->
+                            isDragging = true
+                            dragFraction = fractionFromY(offset.y)
+                        },
+                        onDragEnd = {
+                            val targetMode = modeFromFraction(dragFraction)
+                            isDragging = false
+                            if (targetMode != currentModeState) {
+                                triggerHaptic()
+                                onModeSelectedState(targetMode)
+                            }
+                        },
+                        onDragCancel = {
+                            isDragging = false
+                        },
+                        onVerticalDrag = { change, _ ->
+                            change.consume()
+                            val newFraction = fractionFromY(change.position.y)
+                            val prevMode = modeFromFraction(dragFraction)
+                            dragFraction = newFraction
+                            val newMode = modeFromFraction(newFraction)
+                            if (prevMode != newMode) {
+                                triggerHaptic()
+                            }
+                        }
+                    )
+                }
         ) {
-            // Left Column: Slider Track & Knob
-            var trackHeightPx by remember { mutableFloatStateOf(0f) }
+            // 3 Snap Stop Tick Dots along the centerline
+            val dotColor = if (isDark) Color(0x4DFFFFFF) else Color(0x3D000000)
+
+            // Exact center offsets for the stops:
+            // Stop 0 (RING): paddingPx + knobSizePx / 2
+            // Stop 1 (VIBRATE): totalHeightPx / 2
+            // Stop 2 (SILENT): totalHeightPx - paddingPx - knobSizePx / 2
+            val ringStopY = with(density) { (paddingPx + knobSizePx / 2f).toDp() }
+            val vibrateStopY = with(density) { (totalHeightPx / 2f).toDp() }
+            val silentStopY = with(density) { (totalHeightPx - paddingPx - knobSizePx / 2f).toDp() }
+
+            listOf(ringStopY, vibrateStopY, silentStopY).forEach { stopY ->
+                Box(
+                    modifier = Modifier
+                        .offset {
+                            IntOffset(
+                                x = 0,
+                                y = with(density) { (stopY - 3.dp).roundToPx() }
+                            )
+                        }
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(dotColor)
+                        .align(Alignment.TopCenter)
+                )
+            }
+
+            // iOS Control Center-style Floating Circular White Knob
+            val knobTopPx = paddingPx + (animatedFraction * travelPx)
+
+            val knobBg = if (isDark) Color(0xFFFFFFFF) else Color(0xFFFFFFFF)
+            val knobIcon: ImageVector = when (currentMode) {
+                AlertMode.RING -> Icons.Default.Notifications
+                AlertMode.VIBRATE -> Icons.Default.Vibration
+                AlertMode.SILENT -> Icons.Default.NotificationsOff
+            }
 
             Box(
                 modifier = Modifier
-                    .width(64.dp)
-                    .fillMaxHeight()
-                    .onGloballyPositioned { coordinates ->
-                        trackHeightPx = coordinates.size.height.toFloat()
-                    }
-                    .pointerInput(trackHeightPx) {
-                        detectTapGestures { offset ->
-                            if (trackHeightPx > 0f) {
-                                val fraction = (offset.y / trackHeightPx).coerceIn(0f, 1f)
-                                val newMode = when {
-                                    fraction < 0.33f -> AlertMode.RING
-                                    fraction < 0.66f -> AlertMode.VIBRATE
-                                    else -> AlertMode.SILENT
-                                }
-                                if (newMode != currentMode) {
-                                    triggerHaptics()
-                                    onModeSelected(newMode)
-                                }
-                            }
-                        }
-                    }
-                    .pointerInput(trackHeightPx) {
-                        detectDragGestures(
-                            onDragStart = { offset ->
-                                if (trackHeightPx > 0f) {
-                                    val fraction = (offset.y / trackHeightPx).coerceIn(0f, 1f)
-                                    val newMode = when {
-                                        fraction < 0.33f -> AlertMode.RING
-                                        fraction < 0.66f -> AlertMode.VIBRATE
-                                        else -> AlertMode.SILENT
-                                    }
-                                    if (newMode != currentMode) {
-                                        triggerHaptics()
-                                        onModeSelected(newMode)
-                                    }
-                                }
-                            },
-                            onDrag = { change, _ ->
-                                change.consume()
-                                if (trackHeightPx > 0f) {
-                                    val fraction = (change.position.y / trackHeightPx).coerceIn(0f, 1f)
-                                    val newMode = when {
-                                        fraction < 0.33f -> AlertMode.RING
-                                        fraction < 0.66f -> AlertMode.VIBRATE
-                                        else -> AlertMode.SILENT
-                                    }
-                                    if (newMode != currentMode) {
-                                        triggerHaptics()
-                                        onModeSelected(newMode)
-                                    }
-                                }
-                            }
-                        )
-                    },
-                contentAlignment = Alignment.TopCenter
-            ) {
-                // Background Track Line
-                Box(
-                    modifier = Modifier
-                        .width(10.dp)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(5.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    RingBlue.copy(alpha = 0.4f),
-                                    VibrateAmber.copy(alpha = 0.4f),
-                                    SilentPink.copy(alpha = 0.4f)
-                                )
-                            )
-                        )
-                )
-
-                // Mode Snap Nodes on Track
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    modes.forEach { mode ->
-                        val isSelected = mode == currentMode
-                        val nodeColor = if (isSelected) activeColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-
-                        Box(
-                            modifier = Modifier
-                                .size(if (isSelected) 18.dp else 12.dp)
-                                .clip(CircleShape)
-                                .background(nodeColor)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    if (!isSelected) {
-                                        triggerHaptics()
-                                        onModeSelected(mode)
-                                    }
-                                }
-                        )
-                    }
-                }
-
-                // Sliding Metallic Thumb / Knob
-                val density = androidx.compose.ui.platform.LocalDensity.current
-                val knobSizePx = with(density) { 56.dp.toPx() }
-                val knobOffsetPx = (animatedFraction * (trackHeightPx - knobSizePx)).coerceAtLeast(0f)
-
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(0, knobOffsetPx.roundToInt()) }
-                        .size(56.dp)
-                        .shadow(16.dp, CircleShape, spotColor = activeColor)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    activeColor,
-                                    activeColor.copy(alpha = 0.85f)
-                                )
-                            )
-                        )
-                        .border(2.dp, Color.White.copy(alpha = 0.8f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val icon: ImageVector = when (currentMode) {
-                        AlertMode.RING -> Icons.Default.Notifications
-                        AlertMode.VIBRATE -> Icons.Default.Vibration
-                        AlertMode.SILENT -> Icons.Default.NotificationsOff
-                    }
-
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = currentMode.title,
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                    .offset { IntOffset(x = 0, y = knobTopPx.roundToInt()) }
+                    .size(knobSize)
+                    .align(Alignment.TopCenter)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = CircleShape,
+                        spotColor = Color.Black.copy(alpha = 0.3f),
+                        ambientColor = Color.Black.copy(alpha = 0.15f)
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Right Column: Mode Labels & Tap Targets
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .weight(1f),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .clip(CircleShape)
+                    .background(knobBg)
+                    .border(BorderStroke(0.5.dp, Color(0x1F000000)), CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                modes.forEach { mode ->
-                    val isSelected = mode == currentMode
-                    val textColor = if (isSelected) {
-                        when (mode) {
-                            AlertMode.RING -> RingBlue
-                            AlertMode.VIBRATE -> VibrateAmber
-                            AlertMode.SILENT -> SilentPink
-                        }
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (isSelected) textColor.copy(alpha = 0.12f)
-                                else Color.Transparent
-                            )
-                            .clickable {
-                                if (!isSelected) {
-                                    triggerHaptics()
-                                    onModeSelected(mode)
-                                }
-                            }
-                            .padding(vertical = 12.dp, horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = when (mode) {
-                                        AlertMode.RING -> "🔔"
-                                        AlertMode.VIBRATE -> "📳"
-                                        AlertMode.SILENT -> "🔇"
-                                    },
-                                    fontSize = 18.sp,
-                                    modifier = Modifier.padding(end = 8.dp)
-                                )
-                                Text(
-                                    text = mode.title,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = textColor
-                                )
-                            }
-                            Text(
-                                text = when (mode) {
-                                    AlertMode.RING -> "Full Audio"
-                                    AlertMode.VIBRATE -> "Haptics Only"
-                                    AlertMode.SILENT -> "Muted DND"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = textColor.copy(alpha = if (isSelected) 0.9f else 0.6f)
-                            )
-                        }
-                    }
-                }
+                Icon(
+                    imageVector = knobIcon,
+                    contentDescription = currentMode.title,
+                    tint = accentColor,
+                    modifier = Modifier.size(26.dp)
+                )
             }
         }
     }

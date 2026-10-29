@@ -39,7 +39,7 @@ class VirtualAlertSliderTile : TileService() {
         val tile = qsTile ?: return
         val currentMode = audioModeManager.getCurrentAlertMode()
 
-        tile.label = "Slider: ${currentMode.title}"
+        tile.label = currentMode.title
         tile.subtitle = currentMode.subtitle
 
         val iconRes = when (currentMode) {
