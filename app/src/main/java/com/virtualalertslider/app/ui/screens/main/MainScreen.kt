@@ -40,12 +40,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.virtualalertslider.app.domain.model.AlertMode
 import com.virtualalertslider.app.domain.model.SliderSettings
 import com.virtualalertslider.app.ui.components.AlertModeCard
@@ -129,28 +129,32 @@ fun MainScreenContent(
             .fillMaxSize()
             .background(if (isDark) IosDarkBackground else IosLightBackground)
     ) {
-        // Soft ambient background glow for glass refraction
+        // Soft ambient background layer for glass refraction (sampled by Haze)
         Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(320.dp)
-                .clip(CircleShape)
-                .blur(80.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            ambientColor.copy(alpha = if (isDark) 0.18f else 0.08f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        )
-
-        // Main content container with Haze sampling
-        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .haze(hazeState)
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(360.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                ambientColor.copy(alpha = if (isDark) 0.22f else 0.10f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Main content container
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                 .padding(safePadding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),

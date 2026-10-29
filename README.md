@@ -44,7 +44,7 @@ You can download the pre-compiled APK directly onto your phone without needing A
 
 👉 **[Download Latest APK from GitHub Releases](https://github.com/shaiiiikh-github/VirtualAlertSlider/releases/latest)**
 
-1. Download **`VirtualAlertSlider-v1.2.0.apk`** to your Android phone.
+1. Download **`VirtualAlertSlider-v1.2.1.apk`** to your Android phone.
 2. Tap the downloaded file to install.
 3. If prompted, allow *"Install from this source"*.
 4. Open the app and grant **Do Not Disturb (Notification Policy) Access** when prompted.

@@ -22,7 +22,6 @@ import com.virtualalertslider.app.ui.theme.IosLightBorder
 import com.virtualalertslider.app.ui.theme.IosLightGlassTint
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeChild
 
 @Composable
@@ -64,13 +63,17 @@ fun GlassSurface(
         .clip(shape)
 
     val styledModifier = if (hazeState != null && supportsHardwareBlur) {
-        baseModifier.hazeChild(
-            state = hazeState,
-            style = HazeStyle(
-                tint = HazeTint(effectiveTint),
-                blurRadius = 28.dp
+        runCatching {
+            baseModifier.hazeChild(
+                state = hazeState,
+                style = HazeStyle(
+                    tint = effectiveTint,
+                    blurRadius = 24.dp
+                )
             )
-        )
+        }.getOrElse {
+            baseModifier.background(fallbackColor)
+        }
     } else {
         baseModifier.background(fallbackColor)
     }

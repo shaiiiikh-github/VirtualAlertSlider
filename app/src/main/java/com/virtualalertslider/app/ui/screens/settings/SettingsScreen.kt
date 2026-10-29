@@ -46,13 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.virtualalertslider.app.domain.model.AlertMode
 import com.virtualalertslider.app.domain.model.SliderSettings
 import com.virtualalertslider.app.domain.model.ThemePreference
@@ -328,7 +328,7 @@ fun SettingsScreenContent(
             GroupedSettingsSection(title = "About") {
                 SettingsRow(
                     title = "Virtual Alert Slider",
-                    subtitle = "Version 1.2.0",
+                    subtitle = "Version 1.2.1",
                     icon = Icons.Default.Info,
                     iconTint = RingBlue,
                     trailingContent = {

@@ -62,11 +62,19 @@ fun VirtualAlertSliderTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as? Activity)?.window ?: return@SideEffect
-            // Proper edge-to-edge system bar appearance without hardcoding statusBarColor
-            val insetsController = WindowCompat.getInsetsController(window, view)
-            insetsController.isAppearanceLightStatusBars = !darkTheme
-            insetsController.isAppearanceLightNavigationBars = !darkTheme
+            runCatching {
+                var ctx = view.context
+                while (ctx is android.content.ContextWrapper) {
+                    if (ctx is Activity) break
+                    ctx = ctx.baseContext
+                }
+                val window = (ctx as? Activity)?.window ?: return@SideEffect
+                val insetsController = WindowCompat.getInsetsController(window, view)
+                insetsController.isAppearanceLightStatusBars = !darkTheme
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    insetsController.isAppearanceLightNavigationBars = !darkTheme
+                }
+            }
         }
     }
 
