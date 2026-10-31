@@ -6,7 +6,10 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 
-class NotificationPolicyManager(private val context: Context) {
+class NotificationPolicyManager(
+    private val context: Context,
+    private val isGrantedProvider: (() -> Boolean)? = null
+) {
 
     private val notificationManager: NotificationManager by lazy {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -17,6 +20,9 @@ class NotificationPolicyManager(private val context: Context) {
      * Required to set device to Silent/DND mode without SecurityException.
      */
     fun isNotificationPolicyAccessGranted(): Boolean {
+        if (isGrantedProvider != null) {
+            return isGrantedProvider.invoke()
+        }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             notificationManager.isNotificationPolicyAccessGranted
         } else {

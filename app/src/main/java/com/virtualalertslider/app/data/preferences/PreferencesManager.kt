@@ -18,7 +18,10 @@ import java.io.IOException
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "virtual_alert_slider_prefs")
 
-class PreferencesManager(private val context: Context) {
+class PreferencesManager(
+    private val context: Context,
+    private val dataStore: DataStore<Preferences> = context.dataStore
+) {
 
     private object PreferencesKeys {
         val LAST_SELECTED_MODE = stringPreferencesKey("last_selected_mode")
@@ -28,7 +31,7 @@ class PreferencesManager(private val context: Context) {
         val BYPASS_STUCK_SLIDER = booleanPreferencesKey("bypass_stuck_slider")
     }
 
-    val selectedModeFlow: Flow<AlertMode> = context.dataStore.data
+    val selectedModeFlow: Flow<AlertMode> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
                 emit(emptyPreferences())
@@ -41,7 +44,7 @@ class PreferencesManager(private val context: Context) {
             AlertMode.fromId(modeId)
         }
 
-    val rawSelectedModeFlow: Flow<AlertMode?> = context.dataStore.data
+    val rawSelectedModeFlow: Flow<AlertMode?> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
                 emit(emptyPreferences())
@@ -54,7 +57,7 @@ class PreferencesManager(private val context: Context) {
             if (modeId != null) AlertMode.fromId(modeId) else null
         }
 
-    val settingsFlow: Flow<SliderSettings> = context.dataStore.data
+    val settingsFlow: Flow<SliderSettings> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
                 emit(emptyPreferences())
@@ -72,31 +75,31 @@ class PreferencesManager(private val context: Context) {
         }
 
     suspend fun saveSelectedMode(mode: AlertMode) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SELECTED_MODE] = mode.id
         }
     }
 
     suspend fun saveDefaultMode(mode: AlertMode) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEFAULT_MODE] = mode.id
         }
     }
 
     suspend fun saveHapticFeedbackEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAPTIC_FEEDBACK_ENABLED] = enabled
         }
     }
 
     suspend fun saveThemePreference(themePreference: ThemePreference) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_PREFERENCE] = themePreference.name
         }
     }
 
     suspend fun saveBypassStuckSlider(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.BYPASS_STUCK_SLIDER] = enabled
         }
     }

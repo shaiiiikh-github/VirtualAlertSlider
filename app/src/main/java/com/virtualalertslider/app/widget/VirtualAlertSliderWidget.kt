@@ -10,11 +10,17 @@ import android.content.Intent
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Build
+import android.service.quicksettings.TileService
 import android.widget.RemoteViews
 import com.virtualalertslider.app.MainActivity
 import com.virtualalertslider.app.R
+import com.virtualalertslider.app.VirtualAlertSliderApp
 import com.virtualalertslider.app.domain.model.AlertMode
-import com.virtualalertslider.app.system.AudioModeManager
+import com.virtualalertslider.app.tile.VirtualAlertSliderTile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class VirtualAlertSliderWidget : AppWidgetProvider() {
 
@@ -31,17 +37,37 @@ class VirtualAlertSliderWidget : AppWidgetProvider() {
         if (action.startsWith(ACTION_SET_MODE_PREFIX)) {
             val modeId = action.removePrefix(ACTION_SET_MODE_PREFIX)
             val mode = AlertMode.fromId(modeId)
-            val audioModeManager = AudioModeManager(context)
-            val result = audioModeManager.setAlertMode(mode)
+            val pendingResult = goAsync()
+            val repository = VirtualAlertSliderApp.getRepository(context)
 
-            if (result.isFailure) {
-                // Launch MainActivity if permission required or error occurs
-                val launchIntent = Intent(context, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val result = repository.setAlertMode(mode)
+                    if (result.isFailure) {
+                        withContext(Dispatchers.Main) {
+                            try {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Do Not Disturb access required to switch ringer mode",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            } catch (_: Throwable) {}
+                            updateAllWidgets(context)
+                        }
+                    } else {
+                        withContext(Dispatchers.Main) {
+                            updateAllWidgets(context)
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                                TileService.requestListeningState(
+                                    context,
+                                    ComponentName(context, VirtualAlertSliderTile::class.java)
+                                )
+                            }
+                        }
+                    }
+                } finally {
+                    pendingResult.finish()
                 }
-                context.startActivity(launchIntent)
-            } else {
-                updateAllWidgets(context)
             }
         } else if (action == AudioManager.RINGER_MODE_CHANGED_ACTION ||
             (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && action == NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED) ||
@@ -64,8 +90,8 @@ class VirtualAlertSliderWidget : AppWidgetProvider() {
         }
 
         private fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
-            val audioModeManager = AudioModeManager(context)
-            val currentMode = audioModeManager.getCurrentAlertMode()
+            val repository = VirtualAlertSliderApp.getRepository(context)
+            val currentMode = repository.getCurrentAlertMode()
             val views = RemoteViews(context.packageName, R.layout.widget_alert_slider)
 
             // Header state
@@ -100,21 +126,26 @@ class VirtualAlertSliderWidget : AppWidgetProvider() {
                 `package` = context.packageName
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
-            val mainPendingIntent = PendingIntent.getActivity(
-                context, 0, mainIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            val pendingMainIntent = PendingIntent.getActivity(
+                context,
+                0,
+                mainIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.widget_container, mainPendingIntent)
+            views.setOnClickPendingIntent(R.id.widget_container, pendingMainIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
         private fun createModePendingIntent(context: Context, mode: AlertMode, requestCode: Int): PendingIntent {
             val intent = Intent(context, VirtualAlertSliderWidget::class.java).apply {
-                action = "$ACTION_SET_MODE_PREFIX${mode.id}"
-                `package` = context.packageName
+                action = ACTION_SET_MODE_PREFIX + mode.id
             }
             return PendingIntent.getBroadcast(
-                context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                context,
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }
     }

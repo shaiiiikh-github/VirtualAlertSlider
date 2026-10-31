@@ -1,9 +1,12 @@
 package com.virtualalertslider.app.ui.screens.main
 
 import android.app.Application
+import android.content.ComponentName
 import android.os.Build
+import android.service.quicksettings.TileService
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.virtualalertslider.app.VirtualAlertSliderApp
 import com.virtualalertslider.app.data.repository.AlertSliderRepositoryImpl
 import com.virtualalertslider.app.domain.model.AlertMode
 import com.virtualalertslider.app.domain.model.SliderSettings
@@ -28,14 +31,16 @@ data class MainUiState(
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AlertSliderRepositoryImpl(application)
+    private val repository = VirtualAlertSliderApp.getRepository(application)
     private val observeAlertModeUseCase = ObserveAlertModeUseCase(repository)
-    private val setAlertModeUseCase = SetAlertModeUseCase(repository)
+    private val setAlertModeUseCase = VirtualAlertSliderApp.getSetAlertModeUseCase(application)
     private val getSettingsUseCase = GetSettingsUseCase(repository)
     private val notificationPolicyManager = NotificationPolicyManager(application)
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+    private var setModeJob: kotlinx.coroutines.Job? = null
 
     init {
         // Observe system ringer mode changes
@@ -65,12 +70,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectMode(mode: AlertMode) {
-        viewModelScope.launch {
+        if (mode == _uiState.value.currentMode) return
+
+        setModeJob?.cancel()
+        setModeJob = viewModelScope.launch {
             val result = setAlertModeUseCase(mode)
             if (result.isSuccess) {
                 _uiState.update { it.copy(currentMode = mode, errorMessage = null) }
                 // Synchronize widget and QS tile
                 VirtualAlertSliderWidget.updateAllWidgets(getApplication())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    TileService.requestListeningState(
+                        getApplication(),
+                        ComponentName(getApplication(), VirtualAlertSliderTile::class.java)
+                    )
+                }
             } else {
                 val exception = result.exceptionOrNull()
                 val message = exception?.localizedMessage ?: "Failed to set alert mode"

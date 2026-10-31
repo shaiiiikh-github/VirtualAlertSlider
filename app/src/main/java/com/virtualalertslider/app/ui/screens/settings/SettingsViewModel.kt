@@ -3,6 +3,7 @@ package com.virtualalertslider.app.ui.screens.settings
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.virtualalertslider.app.VirtualAlertSliderApp
 import com.virtualalertslider.app.data.repository.AlertSliderRepositoryImpl
 import com.virtualalertslider.app.domain.model.AlertMode
 import com.virtualalertslider.app.domain.model.SliderSettings
@@ -18,7 +19,7 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = AlertSliderRepositoryImpl(application)
+    private val repository = VirtualAlertSliderApp.getRepository(application)
     private val getSettingsUseCase = GetSettingsUseCase(repository)
     private val saveSettingsUseCase = SaveSettingsUseCase(repository)
     private val notificationPolicyManager = NotificationPolicyManager(application)

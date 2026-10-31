@@ -7,30 +7,101 @@ import android.os.Build
 import android.provider.Settings
 import com.virtualalertslider.app.domain.model.AlertMode
 
-class AudioModeManager(private val context: Context) {
+interface AudioSystemBridge {
+    fun getRingerMode(): Int
+    fun setRingerMode(mode: Int)
+    fun getInterruptionFilter(): Int
+    fun setInterruptionFilter(filter: Int)
+    fun isNotificationPolicyAccessGranted(): Boolean
+    fun getStreamMaxVolume(streamType: Int): Int
+    fun adjustStreamVolume(streamType: Int, direction: Int, flags: Int)
+    fun setStreamVolume(streamType: Int, index: Int, flags: Int)
+    fun isStreamMute(streamType: Int): Boolean
+    fun putGlobalSetting(key: String, value: Int)
+}
 
-    private val audioManager: AudioManager by lazy {
+class DefaultAudioSystemBridge(private val context: Context) : AudioSystemBridge {
+    private val audioManager by lazy {
         context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     }
-
-    private val notificationManager: NotificationManager by lazy {
+    private val notificationManager by lazy {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     }
+    private val notificationPolicyManager by lazy {
+        NotificationPolicyManager(context)
+    }
 
-    private val notificationPolicyManager = NotificationPolicyManager(context)
+    override fun getRingerMode(): Int = audioManager.ringerMode
+    override fun setRingerMode(mode: Int) {
+        audioManager.ringerMode = mode
+    }
+    override fun getInterruptionFilter(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            notificationManager.currentInterruptionFilter
+        } else {
+            NotificationManager.INTERRUPTION_FILTER_ALL
+        }
+    override fun setInterruptionFilter(filter: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            notificationManager.setInterruptionFilter(filter)
+        }
+    }
+    override fun isNotificationPolicyAccessGranted(): Boolean =
+        notificationPolicyManager.isNotificationPolicyAccessGranted()
+
+    override fun getStreamMaxVolume(streamType: Int): Int =
+        audioManager.getStreamMaxVolume(streamType)
+    override fun adjustStreamVolume(streamType: Int, direction: Int, flags: Int) =
+        audioManager.adjustStreamVolume(streamType, direction, flags)
+    override fun setStreamVolume(streamType: Int, index: Int, flags: Int) =
+        audioManager.setStreamVolume(streamType, index, flags)
+    override fun isStreamMute(streamType: Int): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            audioManager.isStreamMute(streamType)
+        } else {
+            false
+        }
+    override fun putGlobalSetting(key: String, value: Int) {
+        Settings.Global.putInt(context.contentResolver, key, value)
+    }
+}
+
+class AudioModeManager(
+    private val context: Context,
+    private val bridge: AudioSystemBridge = DefaultAudioSystemBridge(context)
+) {
 
     /**
      * Reads current hardware/system ringer mode and DND interruption filter.
      */
     fun getCurrentAlertMode(): AlertMode {
-        val ringerMode = audioManager.ringerMode
-        val interruptionFilter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            notificationManager.currentInterruptionFilter
-        } else {
-            NotificationManager.INTERRUPTION_FILTER_ALL
-        }
+        val ringerMode = bridge.getRingerMode()
+        val interruptionFilter = bridge.getInterruptionFilter()
 
-        return AlertMode.fromRingerMode(ringerMode, interruptionFilter)
+        val mode = AlertMode.fromRingerMode(ringerMode, interruptionFilter)
+        if (mode == AlertMode.RING && (bridge.isStreamMute(AudioManager.STREAM_RING) || bridge.isStreamMute(AudioManager.STREAM_NOTIFICATION))) {
+            return AlertMode.SILENT
+        }
+        return mode
+    }
+
+    /**
+     * Checks if the REAL hardware/system state matches the given alert mode.
+     * Evaluates ringer mode, interruption filter, and stream mute states.
+     */
+    fun isSystemInAlertMode(mode: AlertMode): Boolean {
+        val ringerMode = bridge.getRingerMode()
+        val interruptionFilter = bridge.getInterruptionFilter()
+        val baseMode = AlertMode.fromRingerMode(ringerMode, interruptionFilter)
+        if (baseMode != mode) return false
+
+        // For RING, verify that streams are not muted
+        if (mode == AlertMode.RING) {
+            if (bridge.isStreamMute(AudioManager.STREAM_RING) || bridge.isStreamMute(AudioManager.STREAM_NOTIFICATION)) {
+                return false
+            }
+        }
+        return true
     }
 
     /**
@@ -40,7 +111,7 @@ class AudioModeManager(private val context: Context) {
      */
     fun setAlertMode(mode: AlertMode): Result<Unit> {
         return try {
-            val hasDndAccess = notificationPolicyManager.isNotificationPolicyAccessGranted()
+            val hasDndAccess = bridge.isNotificationPolicyAccessGranted()
 
             when (mode) {
                 AlertMode.RING -> {
@@ -48,31 +119,45 @@ class AudioModeManager(private val context: Context) {
                     tryOverrideOnePlusHardwareSlider(3)
 
                     // 2. Clear Do Not Disturb so calls and notifications are permitted
-                    if (hasDndAccess && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         try {
-                            if (notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) {
-                                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                            if (bridge.getInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL) {
+                                bridge.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: SecurityException) {
+                            return Result.failure(e)
+                        } catch (e: Exception) {
+                            logError("AudioModeManager", "Failed to clear DND filter", e)
+                            return Result.failure(e)
+                        }
                     }
 
                     // 3. Set standard Android ringer mode
                     try {
-                        audioManager.ringerMode = AudioManager.RINGER_MODE_NORMAL
-                    } catch (_: Exception) {}
+                        bridge.setRingerMode(AudioManager.RINGER_MODE_NORMAL)
+                    } catch (e: SecurityException) {
+                        return Result.failure(e)
+                    } catch (e: Exception) {
+                        logError("AudioModeManager", "Failed to set normal ringer mode", e)
+                        return Result.failure(e)
+                    }
 
                     // 4. Force unmute and restore volume streams (The hardware bypass trick for stuck slider)
                     try {
-                        val maxRing = audioManager.getStreamMaxVolume(AudioManager.STREAM_RING)
+                        val maxRing = bridge.getStreamMaxVolume(AudioManager.STREAM_RING)
                         val targetRing = (maxRing * 0.75f).toInt().coerceAtLeast(1)
-                        val maxNotif = audioManager.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION)
+                        val maxNotif = bridge.getStreamMaxVolume(AudioManager.STREAM_NOTIFICATION)
                         val targetNotif = (maxNotif * 0.75f).toInt().coerceAtLeast(1)
 
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_UNMUTE, 0)
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0)
-                        audioManager.setStreamVolume(AudioManager.STREAM_RING, targetRing, 0)
-                        audioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, targetNotif, 0)
-                    } catch (_: Exception) {}
+                        bridge.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_UNMUTE, 0)
+                        bridge.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_UNMUTE, 0)
+                        bridge.setStreamVolume(AudioManager.STREAM_RING, targetRing, 0)
+                        bridge.setStreamVolume(AudioManager.STREAM_NOTIFICATION, targetNotif, 0)
+                    } catch (e: SecurityException) {
+                        return Result.failure(e)
+                    } catch (e: Exception) {
+                        logError("AudioModeManager", "Failed to adjust volume streams", e)
+                    }
 
                     Result.success(Unit)
                 }
@@ -82,23 +167,37 @@ class AudioModeManager(private val context: Context) {
                     tryOverrideOnePlusHardwareSlider(2)
 
                     // 2. Clear DND
-                    if (hasDndAccess && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         try {
-                            if (notificationManager.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL) {
-                                notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
+                            if (bridge.getInterruptionFilter() != NotificationManager.INTERRUPTION_FILTER_ALL) {
+                                bridge.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL)
                             }
-                        } catch (_: Exception) {}
+                        } catch (e: SecurityException) {
+                            return Result.failure(e)
+                        } catch (e: Exception) {
+                            logError("AudioModeManager", "Failed to clear DND filter", e)
+                            return Result.failure(e)
+                        }
                     }
 
                     // 3. Set ringer mode to Vibrate
                     try {
-                        audioManager.ringerMode = AudioManager.RINGER_MODE_VIBRATE
-                    } catch (_: Exception) {}
+                        bridge.setRingerMode(AudioManager.RINGER_MODE_VIBRATE)
+                    } catch (e: SecurityException) {
+                        return Result.failure(e)
+                    } catch (e: Exception) {
+                        logError("AudioModeManager", "Failed to set vibrate ringer mode", e)
+                        return Result.failure(e)
+                    }
 
                     // 4. Silence ring volume stream so it vibrates only
                     try {
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0)
-                    } catch (_: Exception) {}
+                        bridge.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0)
+                    } catch (e: SecurityException) {
+                        return Result.failure(e)
+                    } catch (e: Exception) {
+                        logError("AudioModeManager", "Failed to mute ring stream for vibrate", e)
+                    }
 
                     Result.success(Unit)
                 }
@@ -115,29 +214,50 @@ class AudioModeManager(private val context: Context) {
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         try {
-                            notificationManager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
-                        } catch (_: Exception) {}
+                            bridge.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALARMS)
+                        } catch (e: SecurityException) {
+                            return Result.failure(e)
+                        } catch (e: Exception) {
+                            logError("AudioModeManager", "Failed to set DND alarms filter", e)
+                            return Result.failure(e)
+                        }
                     }
 
                     try {
-                        audioManager.ringerMode = AudioManager.RINGER_MODE_SILENT
-                    } catch (_: Exception) {}
+                        bridge.setRingerMode(AudioManager.RINGER_MODE_SILENT)
+                    } catch (e: SecurityException) {
+                        return Result.failure(e)
+                    } catch (e: Exception) {
+                        logError("AudioModeManager", "Failed to set silent ringer mode", e)
+                        return Result.failure(e)
+                    }
 
                     // Mute streams
                     try {
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0)
-                        audioManager.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0)
-                    } catch (_: Exception) {}
+                        bridge.adjustStreamVolume(AudioManager.STREAM_RING, AudioManager.ADJUST_MUTE, 0)
+                        bridge.adjustStreamVolume(AudioManager.STREAM_NOTIFICATION, AudioManager.ADJUST_MUTE, 0)
+                    } catch (e: SecurityException) {
+                        return Result.failure(e)
+                    } catch (e: Exception) {
+                        logError("AudioModeManager", "Failed to mute streams for silent", e)
+                    }
 
                     Result.success(Unit)
                 }
             }
         } catch (e: SecurityException) {
-            Result.failure(
-                SecurityException("Android permission error: Do Not Disturb policy access needed. (${e.localizedMessage})")
-            )
-        } catch (e: Exception) {
             Result.failure(e)
+        } catch (e: Exception) {
+            logError("AudioModeManager", "Unexpected error setting alert mode", e)
+            Result.failure(e)
+        }
+    }
+
+    private fun logError(tag: String, message: String, throwable: Throwable? = null) {
+        try {
+            android.util.Log.e(tag, message, throwable)
+        } catch (_: Throwable) {
+            System.err.println("[$tag] $message ${throwable?.message ?: ""}")
         }
     }
 
@@ -149,7 +269,7 @@ class AudioModeManager(private val context: Context) {
         val keys = listOf("three_Key_mode", "three_key_mode", "alert_slider_mode", "oplus_mode_ringer")
         for (key in keys) {
             try {
-                Settings.Global.putInt(context.contentResolver, key, modeValue)
+                bridge.putGlobalSetting(key, modeValue)
             } catch (_: Exception) {
                 // If secure settings permission is not yet granted, fallback gracefully
             }

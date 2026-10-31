@@ -12,11 +12,17 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-class RingerModeReceiver(private val context: Context) {
+open class RingerModeReceiver(
+    private val context: Context,
+    private val audioModeManager: AudioModeManager = AudioModeManager(context),
+    private val customFlow: Flow<AlertMode>? = null
+) {
 
-    private val audioModeManager = AudioModeManager(context)
-
-    fun observeRingerModeChanges(): Flow<AlertMode> = callbackFlow {
+    open fun observeRingerModeChanges(): Flow<AlertMode> {
+        if (customFlow != null) {
+            return customFlow
+        }
+        return callbackFlow {
         // Send initial state immediately
         trySend(audioModeManager.getCurrentAlertMode())
 
@@ -48,4 +54,5 @@ class RingerModeReceiver(private val context: Context) {
             }
         }
     }
+}
 }
